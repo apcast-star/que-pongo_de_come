@@ -48,22 +48,22 @@
         <!-- Header -->
         <header class="mb-12 text-center"> 
             <h1 class="text-4xl md:text-5xl mb-2">¿Vijen der Carmen, que pongo hoy de comé?</h1>
-            <p class="text-gray-500 font-light">ASISTENTE DE COCINA Y LA IA CHIVATA .</p>
+            <p class="text-gray-500 font-light italic">ASISTENTE DE COCINA Y LA IA CHIVATA.</p>
         </header>
 
         <!-- Input Section -->
         <section class="mb-10">
-            <label class="block text-sm font-semibold uppercase tracking-wider mb-3">¿Qué vemo comprado o que tengo por ahí ?</label>
+            <label class="block text-sm font-semibold uppercase tracking-wider mb-3">¿Qué vemo comprado o que tengo por ahí?</label>
             <textarea 
                 id="ingredientsInput" 
                 class="w-full p-4 bg-white border border-gray-200 rounded-xl focus:ring-1 focus:ring-black focus:border-black outline-none transition-all resize-none h-32"
-                placeholder="Ej: 2 huevos, un poco de arroz, tomate, cebolla..."
+                placeholder="Ej: 2 huevos, un nabo , perejil, cebolla ( w2H), moniato, ."
             ></textarea>
         </section>
 
         <!-- Cuisine Style Selection -->
         <section class="mb-10">
-            <label class="block text-sm font-semibold uppercase tracking-wider mb-3">¿ qué estilo vaqueré soshete ?</label>
+            <label class="block text-sm font-semibold uppercase tracking-wider mb-3">¿Qué estilo vaqueré soshete?</label>
             <div class="flex flex-wrap gap-2" id="styleContainer">
                 <button onclick="selectStyle('Mediterránea', this)" class="cuisine-chip px-4 py-2 border border-gray-200 rounded-full text-sm hover:border-black transition-colors">Mediterránea</button>
                 <button onclick="selectStyle('Asiática', this)" class="cuisine-chip px-4 py-2 border border-gray-200 rounded-full text-sm hover:border-black transition-colors">Asiática</button>
@@ -81,27 +81,28 @@
                 onclick="generateRecipe()"
                 class="bg-black text-white px-8 py-4 rounded-full font-semibold hover:bg-zinc-800 transition-all disabled:bg-gray-400 flex items-center justify-center mx-auto"
             >
-                <span id="btnText">A vé que zale </span>
+                <span id="btnText">A vé que zale</span>
                 <span id="btnLoader" class="loader ml-3 hidden"></span>
             </button>
         </div>
 
         <!-- Result Section -->
         <div id="resultContainer" class="hidden">
-            <div id="recipeCard" class="bg-white border border-gray-100 shadow-sm p-8 rounded-2xl fade-in">
+            <div id="recipeCard" class="bg-white border border-gray-100 shadow-sm p-8 rounded-2xl fade-in relative">
                 <!-- Content will be injected here -->
             </div>
         </div>
 
         <!-- Message Box (Instead of Alert) -->
-        <div id="messageBox" class="fixed bottom-10 left-1/2 -translate-x-1/2 bg-red-500 text-white px-6 py-3 rounded-full hidden shadow-lg transition-all">
+        <div id="messageBox" class="fixed bottom-10 left-1/2 -translate-x-1/2 bg-gray-800 text-white px-6 py-3 rounded-full hidden shadow-lg transition-all z-50">
             <span id="messageContent"></span>
         </div>
     </main>
 
     <script>
-        const apiKey = "AIzaSyAk9GHLoNr03N_WklPr4VDxBPGqMl9f17I"; // La clave se proporciona automáticamente en el entorno
+        const apiKey = "AIzaSyAk9GHLoNr03N_WklPr4VDxBPGqMl9f17I"; // API KEY proporcionada por el entorno
         let selectedStyle = "";
+        let currentRecipeData = null;
 
         function selectStyle(style, element) {
             selectedStyle = style;
@@ -109,12 +110,14 @@
             element.classList.add('active');
         }
 
-        function showMessage(text) {
+        function showMessage(text, isError = true) {
             const box = document.getElementById('messageBox');
             const content = document.getElementById('messageContent');
             content.innerText = text;
+            box.classList.remove('hidden', 'bg-red-500', 'bg-green-600', 'bg-gray-800');
+            box.classList.add(isError ? 'bg-red-500' : 'bg-green-600');
             box.classList.remove('hidden');
-            setTimeout(() => box.classList.add('hidden'), 4000);
+            setTimeout(() => box.classList.add('hidden'), 3000);
         }
 
         async function fetchWithRetry(url, options, maxRetries = 5) {
@@ -128,7 +131,7 @@
                 await new Promise(res => setTimeout(res, delay));
                 delay *= 2;
             }
-            throw new Error('No se pudo obtener respuesta de la IA después de varios intentos.');
+            throw new Error('No se pudo obtener respuesta de la IA.');
         }
 
         async function generateRecipe() {
@@ -137,7 +140,6 @@
             const btnText = document.getElementById('btnText');
             const btnLoader = document.getElementById('btnLoader');
             const resultContainer = document.getElementById('resultContainer');
-            const recipeCard = document.getElementById('recipeCard');
 
             if (!ingredients) {
                 showMessage("Por favor, introduce algún ingrediente.");
@@ -151,25 +153,25 @@
 
             // UI Loading State
             btn.disabled = true;
+            const originalText = btnText.innerText;
             btnText.innerText = "Cocinando ideas...";
             btnLoader.classList.remove('hidden');
-            resultContainer.classList.add('hidden');
 
             const systemPrompt = `Eres un chef experto y creativo con un toque de humor andaluz (pero profesional). 
             Tu objetivo es crear una receta deliciosa basada estrictamente en los ingredientes proporcionados por el usuario. 
-            Puedes asumir que el usuario tiene ingredientes básicos de despensa (sal, aceite, pimienta, agua, azúcar).
+            Puedes asumir ingredientes básicos (sal, aceite, pimienta, agua).
             
-            Debes responder exclusivamente en formato JSON estructurado con el siguiente esquema:
+            Responde exclusivamente en JSON:
             {
-                "nombre": "Nombre creativo de la receta",
-                "tiempo": "Tiempo estimado (ej: 25 min)",
+                "nombre": "Nombre creativo",
+                "tiempo": "Ej: 25 min",
                 "dificultad": "Baja/Media/Alta",
-                "ingredientes": ["ingrediente 1", "ingrediente 2"],
-                "pasos": ["paso 1", "paso 2"],
-                "consejo": "Un consejo útil del chef"
+                "ingredientes": ["ingrediente 1"],
+                "pasos": ["paso 1"],
+                "consejo": "Un consejo útil"
             }`;
 
-            const userPrompt = `Ingredientes: ${ingredients}. Estilo de cocina deseado: ${selectedStyle}.`;
+            const userPrompt = `Ingredientes: ${ingredients}. Estilo: ${selectedStyle}.`;
 
             try {
                 const result = await fetchWithRetry(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`, {
@@ -178,25 +180,49 @@
                     body: JSON.stringify({
                         contents: [{ parts: [{ text: userPrompt }] }],
                         systemInstruction: { parts: [{ text: systemPrompt }] },
-                        generationConfig: { 
-                            responseMimeType: "application/json"
-                        }
+                        generationConfig: { responseMimeType: "application/json" }
                     })
                 });
 
                 const rawText = result.candidates?.[0]?.content?.parts?.[0]?.text;
-                const recipe = JSON.parse(rawText);
-
-                renderRecipe(recipe);
+                currentRecipeData = JSON.parse(rawText);
+                renderRecipe(currentRecipeData);
 
             } catch (error) {
                 console.error(error);
-                showMessage("Uf, se nos ha quemado el arroz. Inténtalo de nuevo en un momento.");
+                showMessage("Uf, se nos ha quemado el arroz. Inténtalo de nuevo.");
             } finally {
                 btn.disabled = false;
-                btnText.innerText = "Generar mi receta";
+                btnText.innerText = originalText;
                 btnLoader.classList.add('hidden');
             }
+        }
+
+        function copyToClipboard() {
+            if (!currentRecipeData) return;
+
+            const text = `🍴 RECETA: ${currentRecipeData.nombre}
+⏱️ Tiempo: ${currentRecipeData.tiempo} | 🔥 Dificultad: ${currentRecipeData.dificultad}
+
+🛒 INGREDIENTES:
+${currentRecipeData.ingredientes.map(i => `- ${i}`).join('\n')}
+
+👨‍🍳 PREPARACIÓN:
+${currentRecipeData.pasos.map((p, i) => `${i+1}. ${p}`).join('\n')}
+
+💡 CONSEJO: ${currentRecipeData.consejo}`;
+
+            const textArea = document.createElement("textarea");
+            textArea.value = text;
+            document.body.appendChild(textArea);
+            textArea.select();
+            try {
+                document.execCommand('copy');
+                showMessage("¡Receta copiada al portapapeles!", false);
+            } catch (err) {
+                showMessage("No se pudo copiar el texto.");
+            }
+            document.body.removeChild(textArea);
         }
 
         function renderRecipe(recipe) {
@@ -204,25 +230,35 @@
             const recipeCard = document.getElementById('recipeCard');
 
             recipeCard.innerHTML = `
-                <div class="flex justify-between items-start mb-6">
-                    <div>
+                <div class="flex flex-col md:flex-row justify-between items-start mb-8 gap-4">
+                    <div class="flex-1">
                         <h2 class="text-3xl font-bold mb-2">${recipe.nombre}</h2>
-                        <div class="flex gap-4 text-xs uppercase tracking-widest text-gray-500">
+                        <div class="flex gap-4 text-xs uppercase tracking-widest text-gray-500 font-semibold">
                             <span>⏱️ ${recipe.tiempo}</span>
                             <span>🔥 ${recipe.dificultad}</span>
                         </div>
+                    </div>
+                    <div class="flex gap-2 w-full md:w-auto">
+                        <button onclick="copyToClipboard()" class="flex-1 md:flex-none flex items-center justify-center gap-2 px-4 py-2 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors text-sm font-medium">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
+                            Copiar
+                        </button>
+                        <button onclick="generateRecipe()" class="flex-1 md:flex-none flex items-center justify-center gap-2 px-4 py-2 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors text-sm font-medium">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/></svg>
+                            Refrescar
+                        </button>
                     </div>
                 </div>
 
                 <div class="grid md:grid-cols-2 gap-8">
                     <div>
-                        <h3 class="font-semibold mb-4 border-b pb-2">Ingredientes</h3>
+                        <h3 class="font-bold text-xs uppercase tracking-widest text-gray-400 mb-4 border-b pb-2">Ingredientes</h3>
                         <ul class="space-y-2 text-sm text-gray-700">
                             ${recipe.ingredientes.map(ing => `<li>• ${ing}</li>`).join('')}
                         </ul>
                     </div>
                     <div>
-                        <h3 class="font-semibold mb-4 border-b pb-2">Preparación</h3>
+                        <h3 class="font-bold text-xs uppercase tracking-widest text-gray-400 mb-4 border-b pb-2">Preparación</h3>
                         <ol class="space-y-4 text-sm text-gray-700">
                             ${recipe.pasos.map((paso, index) => `
                                 <li class="flex gap-3">
@@ -236,13 +272,14 @@
 
                 <div class="mt-8 pt-6 border-t border-dashed border-gray-200">
                     <p class="text-sm italic text-gray-600">
-                        <span class="font-bold">Consejo del chef:</span> ${recipe.consejo}
+                        <span class="font-bold text-black not-italic">Consejo del chef:</span> ${recipe.consejo}
                     </p>
                 </div>
             `;
 
             resultContainer.classList.remove('hidden');
-            window.scrollTo({ top: resultContainer.offsetTop - 50, behavior: 'smooth' });
+            const offset = resultContainer.getBoundingClientRect().top + window.pageYOffset - 40;
+            window.scrollTo({ top: offset, behavior: 'smooth' });
         }
     </script>
 </body>
