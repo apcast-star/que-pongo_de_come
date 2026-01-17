@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>¿Qué pongo hoy de comé? - Versión Pro</title>
+    <title>¿Qué pongo hoy de comé? - Versión 2.0</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&family=Playfair+Display:wght@700&display=swap" rel="stylesheet">
     <style>
@@ -47,8 +47,8 @@
     <main class="max-w-xl mx-auto">
         <!-- Header -->
         <header class="mb-10 text-center"> 
-            <h1 class="text-4xl mb-2 text-zinc-900">¿Vijen der Carmen , qué pongo hoy de comé?</h1>
-            <p class="text-zinc-400 font-light tracking-widest uppercase text-[10px]">Chef Inteligente • Conexión Estable</p>
+            <h1 class="text-4xl mb-2 text-zinc-900">¿Qué pongo hoy de comé?</h1>
+            <p class="text-zinc-400 font-light tracking-widest uppercase text-[10px]">Chef IA • Conexión de Nueva Generación</p>
         </header>
 
         <!-- Input Section -->
@@ -123,6 +123,7 @@
         }
 
         async function callGemini(modelName, payload) {
+            // Usamos v1beta para modelos experimentales y v1 para estables
             const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`;
             const response = await fetch(url, {
                 method: 'POST',
@@ -163,26 +164,38 @@
                 }
             };
 
-            // Intentamos con gemini-1.5-flash primero, si falla probamos con la versión 8b (Lite)
-            const models = ["gemini-1.5-flash", "gemini-1.5-flash-8b", "gemini-pro"];
+            // Lista actualizada de modelos (del más nuevo al más compatible)
+            const models = [
+                "gemini-2.0-flash-exp", 
+                "gemini-1.5-flash", 
+                "gemini-1.5-flash-8b"
+            ];
+            
+            let success = false;
             let lastError = "";
 
             for (const model of models) {
                 try {
+                    console.log(`Intentando con el modelo: ${model}`);
                     const data = await callGemini(model, payload);
-                    const recipe = JSON.parse(data.candidates[0].content.parts[0].text);
-                    renderRecipe(recipe);
-                    resultContainer.classList.remove('hidden');
-                    window.scrollTo({ top: resultContainer.offsetTop - 20, behavior: 'smooth' });
-                    lastError = ""; // Éxito
-                    break; 
+                    
+                    if (data.candidates && data.candidates[0].content.parts[0].text) {
+                        const recipe = JSON.parse(data.candidates[0].content.parts[0].text);
+                        renderRecipe(recipe);
+                        resultContainer.classList.remove('hidden');
+                        window.scrollTo({ top: resultContainer.offsetTop - 20, behavior: 'smooth' });
+                        success = true;
+                        break; 
+                    }
                 } catch (error) {
-                    console.warn(`Falló con el modelo ${model}:`, error.message);
-                    lastError = error.message;
+                    console.error(`Error con ${model}:`, error.message);
+                    lastError = `[${model}] ${error.message}`;
                 }
             }
 
-            if (lastError) showMessage("Error: " + lastError);
+            if (!success) {
+                showMessage("Ozú, no ha habío manera: " + lastError);
+            }
 
             btn.disabled = false;
             btnText.innerText = "A vé qué sale";
@@ -197,7 +210,7 @@
                 <h2 class="text-2xl font-bold mb-1 tracking-tight">${recipe.nombre}</h2>
                 <div class="flex gap-4 text-[10px] text-zinc-400 font-bold uppercase mb-6 tracking-widest">
                     <span>⏱️ ${recipe.tiempo}</span>
-                    <span>👨‍🍳 Chef Andaluz</span>
+                    <span>👨‍🍳 Chef Andaluz IA</span>
                 </div>
                 
                 <div class="space-y-6 text-zinc-700">
