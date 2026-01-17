@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>¿Qué pongo hoy de comé? - Solo Recetas</title>
+    <title>¿Qué pongo hoy de comé? - Versión Estable</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&family=Playfair+Display:wght@700&display=swap" rel="stylesheet">
     <style>
@@ -47,23 +47,23 @@
     <main class="max-w-2xl mx-auto">
         <!-- Header -->
         <header class="mb-10 text-center"> 
-            <h1 class="text-4xl md:text-5xl mb-2 text-zinc-900">¿Vijen der Carmen : qué pongo hoy de comé?</h1>
-            <p class="text-zinc-500 font-light tracking-[0.2em] uppercase text-[10px]">Pinshe+IA chivata</p>
+            <h1 class="text-4xl md:text-5xl mb-2 text-zinc-900">¿Qué pongo hoy de comé?</h1>
+            <p class="text-zinc-500 font-light tracking-[0.2em] uppercase text-[10px]">Asistente de cocina • Versión Estable</p>
         </header>
 
         <!-- Input Section -->
         <section class="mb-8">
-            <label class="block text-[10px] font-bold uppercase tracking-widest text-zinc-400 mb-3">¿ A vé que tengo por ahí, o qué vemo comprado?</label>
+            <label class="block text-[10px] font-bold uppercase tracking-widest text-zinc-400 mb-3">¿Qué hay por los cajones?</label>
             <textarea 
                 id="ingredientsInput" 
                 class="w-full p-5 bg-white border border-zinc-200 rounded-2xl focus:ring-1 focus:ring-black focus:border-black outline-none transition-all resize-none h-32 shadow-sm text-sm"
-                placeholder="Ej: Pollo, patatas, una cebolla que me queda..."
+                placeholder="Ej: Tres papas, un trozo de bacalao y media cebolla..."
             ></textarea>
         </section>
 
         <!-- Cuisine Style Selection -->
         <section class="mb-10">
-            <label class="block text-[10px] font-bold uppercase tracking-widest text-zinc-400 mb-3">Escoje estilo Mari </label>
+            <label class="block text-[10px] font-bold uppercase tracking-widest text-zinc-400 mb-3">¿Cómo lo prefieres?</label>
             <div class="flex flex-wrap gap-2" id="styleContainer">
                 <button onclick="selectStyle('Mediterránea', this)" class="cuisine-chip px-5 py-2 border border-zinc-200 rounded-full text-xs hover:border-black transition-colors bg-white">Mediterránea</button>
                 <button onclick="selectStyle('Asiática', this)" class="cuisine-chip px-5 py-2 border border-zinc-200 rounded-full text-xs hover:border-black transition-colors bg-white">Asiática</button>
@@ -80,7 +80,7 @@
                 onclick="generateRecipe()"
                 class="bg-black text-white px-10 py-4 rounded-full font-semibold hover:bg-zinc-800 active:scale-95 transition-all disabled:bg-zinc-300 flex items-center justify-center mx-auto shadow-md"
             >
-                <span id="btnText">A Vé que zale:</span>
+                <span id="btnText">A vé qué zale</span>
                 <span id="btnLoader" class="loader ml-3 hidden"></span>
             </button>
         </div>
@@ -88,11 +88,9 @@
         <!-- Result Section -->
         <div id="resultContainer" class="hidden pb-20">
             <div id="recipeCard" class="bg-white border border-zinc-100 shadow-2xl p-8 md:p-10 rounded-[2rem] fade-in relative">
-                <!-- Copy Button -->
                 <button onclick="copyToClipboard()" class="absolute top-8 right-8 text-zinc-300 hover:text-black transition-colors" title="Copiar">
                     <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
                 </button>
-                
                 <div id="recipeContent"></div>
             </div>
         </div>
@@ -135,8 +133,10 @@
                     
                     if (response.ok) return data;
                     
-                    if (response.status === 429) throw new Error("Límite de cuota: Espera 60 segundos.");
-                    if (response.status === 403) throw new Error("Error de API: Clave no válida.");
+                    // Manejo de errores específicos
+                    if (response.status === 429) throw new Error("Mucho estrés: Espera 60 segundos.");
+                    if (response.status === 403) throw new Error("La llave (API Key) no vale o el modelo no está disponible.");
+                    if (response.status === 404) throw new Error("El modelo de IA no se encuentra. Cambiando...");
                     
                     throw new Error(data.error?.message || "Error desconocido");
                 } catch (e) {
@@ -155,11 +155,11 @@
             const resultContainer = document.getElementById('resultContainer');
 
             if (!apiKey) {
-                showMessage("Falta la API Key en el código.");
+                showMessage("¡Pon la clave de la API en el código, chiquillo!");
                 return;
             }
             if (!ingredients || !selectedStyle) {
-                showMessage("Introduce ingredientes y elige un estilo.");
+                showMessage("Dime qué tienes en la despensa y qué estilo quieres.");
                 return;
             }
 
@@ -168,29 +168,40 @@
             btnLoader.classList.remove('hidden');
             resultContainer.classList.add('hidden');
 
-            const systemPrompt = `Eres un chef andaluz experto. Crea una receta con los ingredientes dados. Responde estrictamente en JSON:
+            const systemPrompt = `Eres un chef andaluz salao y experto. Crea una receta con los ingredientes que te den. Responde SOLO en JSON con este formato:
             {"nombre": "...", "tiempo": "...", "dificultad": "...", "ingredientes": ["..."], "pasos": ["..."], "consejo": "..."}`;
 
+            // Cambiamos a gemini-1.5-flash para mayor estabilidad
+            const model = "gemini-1.5-flash";
+
             try {
-                const result = await fetchWithRetry(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`, {
+                const result = await fetchWithRetry(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
-                        contents: [{ parts: [{ text: `Ingredientes: ${ingredients}. Estilo: ${selectedStyle}.` }] }],
+                        contents: [{ parts: [{ text: `Ingredientes: ${ingredients}. Estilo de cocina: ${selectedStyle}.` }] }],
                         systemInstruction: { parts: [{ text: systemPrompt }] },
-                        generationConfig: { responseMimeType: "application/json" }
+                        generationConfig: { 
+                            responseMimeType: "application/json",
+                            temperature: 0.7
+                        }
                     })
                 });
 
-                const recipe = JSON.parse(result.candidates[0].content.parts[0].text);
-                renderRecipe(recipe);
-                resultContainer.classList.remove('hidden');
-                window.scrollTo({ top: resultContainer.offsetTop - 20, behavior: 'smooth' });
+                if (result.candidates && result.candidates[0].content.parts[0].text) {
+                    const recipe = JSON.parse(result.candidates[0].content.parts[0].text);
+                    renderRecipe(recipe);
+                    resultContainer.classList.remove('hidden');
+                    window.scrollTo({ top: resultContainer.offsetTop - 20, behavior: 'smooth' });
+                } else {
+                    throw new Error("La IA se ha quedao en blanco.");
+                }
             } catch (error) {
+                console.error("Detalle del error:", error);
                 showMessage(error.message);
             } finally {
                 btn.disabled = false;
-                btnText.innerText = "Generar Receta";
+                btnText.innerText = "A vé qué zale";
                 btnLoader.classList.add('hidden');
             }
         }
@@ -210,14 +221,14 @@
 
                 <div class="grid md:grid-cols-2 gap-10">
                     <div class="space-y-4">
-                        <h3 class="text-xs font-bold uppercase tracking-widest text-zinc-400 border-b border-zinc-100 pb-2">Ingredientes</h3>
+                        <h3 class="text-xs font-bold uppercase tracking-widest text-zinc-400 border-b border-zinc-100 pb-2">Lo que hace farta</h3>
                         <ul class="space-y-2 text-sm text-zinc-600">
                             ${recipe.ingredientes.map(i => `<li class="flex items-start gap-2"><span>•</span> ${i}</li>`).join('')}
                         </ul>
                     </div>
                     
                     <div class="space-y-4">
-                        <h3 class="text-xs font-bold uppercase tracking-widest text-zinc-400 border-b border-zinc-100 pb-2">Preparación</h3>
+                        <h3 class="text-xs font-bold uppercase tracking-widest text-zinc-400 border-b border-zinc-100 pb-2">Manos a la obra</h3>
                         <ol class="space-y-4 text-sm text-zinc-600">
                             ${recipe.pasos.map((p, i) => `
                                 <li class="flex gap-3">
@@ -230,7 +241,7 @@
                 </div>
 
                 <div class="mt-12 p-6 bg-zinc-50 rounded-2xl border-l-4 border-zinc-900 italic text-zinc-500 text-sm">
-                    <strong>Chivatazo:</strong> ${recipe.consejo}
+                    <strong>Chivatazo del chef:</strong> ${recipe.consejo}
                 </div>
             `;
         }
@@ -241,7 +252,7 @@
             document.body.appendChild(el); el.select();
             document.execCommand('copy');
             document.body.removeChild(el);
-            showMessage("Receta copiada", "info");
+            showMessage("¡Copiado! Mándalo por el grupo del WhatsApp.", "info");
         }
     </script>
 </body>
